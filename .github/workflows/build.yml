@@ -22,9 +22,9 @@ jobs:
         git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 gcc64
         git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 gcc32
 
-    - name: Fix Taskstats Syntax
+    - name: Fix Taskstats Line 479
       run: |
-        sed -i 's/#elif/#else/g' kernel/taskstats.c
+        sed -i '479s/#elif/#else/' kernel/taskstats.c
 
     - name: Build Kernel
       run: |
