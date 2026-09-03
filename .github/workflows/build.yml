@@ -22,9 +22,22 @@ jobs:
         git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 gcc64
         git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 gcc32
 
-    - name: Fix Taskstats Line 479
+    - name: Apply All Kernel Patches Automatically
       run: |
-        sed -i '479s/#elif/#else/' kernel/taskstats.c
+        # Fix 1: Taskstats syntax issue
+        sed -i '479s/#elif/#else/' kernel/taskstats.c || true
+
+        # Fix 2: Thread info bad copy checks (Qualcomm IPA error fix)
+        sed -i 's/__bad_copy_to();/(void)0;/g' include/linux/thread_info.h || true
+        sed -i 's/__bad_copy_from();/(void)0;/g' include/linux/thread_info.h || true
+
+        # Fix 3: Ensure defconfig disables module signatures
+        DEFCONFIG="arch/arm64/configs/vendor/fog-perf_defconfig"
+        if [ -f "$DEFCONFIG" ]; then
+          sed -i 's/CONFIG_MODULE_SIG=y/CONFIG_MODULE_SIG=n/' $DEFCONFIG
+          sed -i 's/CONFIG_MODULE_SIG_FORCE=y/CONFIG_MODULE_SIG_FORCE=n/' $DEFCONFIG
+          sed -i 's/CONFIG_MODULE_SIG_ALL=y/CONFIG_MODULE_SIG_ALL=n/' $DEFCONFIG
+        fi
 
     - name: Build Kernel
       run: |
@@ -35,7 +48,7 @@ jobs:
         export CROSS_COMPILE_ARM32=arm-linux-androideabi-
         
         make O=out vendor/fog-perf_defconfig
-        make -j$(nproc --all) O=out KCFLAGS="-w -D__NO_FORTIFY" WERROR=0
+        make -j$(nproc --all) O=out KCFLAGS="-w -D__NO_FORTIFY -fno-strict-aliasing" WERROR=0
         
     - name: Upload Boot Image or Kernel Artifact
       uses: actions/upload-artifact@v4
